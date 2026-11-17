@@ -505,20 +505,25 @@ public class MainFrame extends JFrame {
 
     public void showLoginDialog() {
         JDialog dialog = new JDialog(this, "Switch User / Sign In", true);
-        dialog.setSize(400, 320);
+        dialog.setSize(440, 390);
         dialog.setLocationRelativeTo(this);
         dialog.setLayout(new BorderLayout(14, 14));
         dialog.getContentPane().setBackground(UITheme.CARD_BG);
 
-        JPanel form = new JPanel(new GridLayout(4, 1, 10, 10));
-        form.setOpaque(false);
-        form.setBorder(BorderFactory.createEmptyBorder(20, 24, 10, 24));
+        JPanel content = new JPanel();
+        content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
+        content.setOpaque(false);
+        content.setBorder(BorderFactory.createEmptyBorder(18, 24, 10, 24));
 
         JLabel titleLbl = new JLabel("Sign In to SkillBridge");
         titleLbl.setFont(UITheme.FONT_TITLE);
         titleLbl.setForeground(UITheme.TEXT_MAIN);
 
-        JTextField userField = new JTextField("koushik@skillbridge.edu");
+        JLabel subLbl = new JLabel("Enter your campus credentials or pick a registered peer.");
+        subLbl.setFont(UITheme.FONT_SMALL);
+        subLbl.setForeground(UITheme.TEXT_MUTED);
+
+        JTextField userField = new JTextField("koushik@example.com");
         userField.setFont(UITheme.FONT_BODY);
         userField.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(UITheme.BORDER_LIGHT, 1, true),
@@ -532,10 +537,34 @@ public class MainFrame extends JFrame {
                 BorderFactory.createEmptyBorder(8, 12, 8, 12)
         ));
 
-        form.add(titleLbl);
-        form.add(new JLabel("Email Address (e.g. koushik@skillbridge.edu, rohan@skillbridge.edu):"));
-        form.add(userField);
-        form.add(passField);
+        // Quick user selector
+        JComboBox<String> quickSelect = new JComboBox<>(new String[]{
+                "-- Quick Pick Peer Account --",
+                "Koushik Chava (koushik@example.com)",
+                "Rahul Sharma (rahul@example.com)",
+                "Arjun Verma (arjun@example.com)",
+                "Admin User (admin@skillbridge.com)"
+        });
+        quickSelect.addActionListener(e -> {
+            int idx = quickSelect.getSelectedIndex();
+            if (idx == 1) { userField.setText("koushik@example.com"); passField.setText("password123"); }
+            else if (idx == 2) { userField.setText("rahul@example.com"); passField.setText("password123"); }
+            else if (idx == 3) { userField.setText("arjun@example.com"); passField.setText("password123"); }
+            else if (idx == 4) { userField.setText("admin@skillbridge.com"); passField.setText("admin123"); }
+        });
+
+        content.add(titleLbl);
+        content.add(Box.createRigidArea(new Dimension(0, 4)));
+        content.add(subLbl);
+        content.add(Box.createRigidArea(new Dimension(0, 12)));
+        content.add(new JLabel("Quick Select:"));
+        content.add(quickSelect);
+        content.add(Box.createRigidArea(new Dimension(0, 8)));
+        content.add(new JLabel("Email Address:"));
+        content.add(userField);
+        content.add(Box.createRigidArea(new Dimension(0, 8)));
+        content.add(new JLabel("Password:"));
+        content.add(passField);
 
         JPanel btnRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 14));
         btnRow.setOpaque(false);
@@ -546,9 +575,9 @@ public class MainFrame extends JFrame {
         JButton loginBtn = UITheme.createPrimaryButton("Sign In");
         loginBtn.addActionListener(e -> {
             try {
-                String input = userField.getText().trim();
-                String email = input.contains("@") ? input : input + "@skillbridge.edu";
-                User u = userService.loginUser(email, new String(passField.getPassword()));
+                String email = userField.getText().trim();
+                String pass = new String(passField.getPassword()).trim();
+                User u = userService.loginUser(email, pass);
                 setCurrentUser(u);
                 dialog.dispose();
                 JOptionPane.showMessageDialog(this, "Signed in as " + u.getFullName() + " (" + u.getRole() + ")", "Success", JOptionPane.INFORMATION_MESSAGE);
@@ -560,7 +589,7 @@ public class MainFrame extends JFrame {
         btnRow.add(cancelBtn);
         btnRow.add(loginBtn);
 
-        dialog.add(form, BorderLayout.CENTER);
+        dialog.add(content, BorderLayout.CENTER);
         dialog.add(btnRow, BorderLayout.SOUTH);
         dialog.setVisible(true);
     }

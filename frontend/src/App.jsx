@@ -30,6 +30,7 @@ import {
   X
 } from 'lucide-react';
 import { 
+  authApi,
   skillsApi, 
   matchesApi, 
   gamificationApi, 
@@ -54,6 +55,118 @@ import {
 export default function App() {
   const [activeTab, setActiveTab] = useState('overview');
   const [currentUser, setCurrentUser] = useState(initialUsers[0]);
+  
+  // Auth & Account Modal states
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authMode, setAuthMode] = useState('login'); // 'login' or 'register'
+  const [authEmail, setAuthEmail] = useState('koushik@example.com');
+  const [authPassword, setAuthPassword] = useState('password123');
+  const [authName, setAuthName] = useState('');
+  const [authRole, setAuthRole] = useState('STUDENT');
+  const [authBio, setAuthBio] = useState('');
+  const [authError, setAuthError] = useState('');
+  const [authSuccess, setAuthSuccess] = useState('');
+
+  // Helper for dynamic initials from full name
+  const getInitials = (name) => {
+    if (!name) return 'SB';
+    return name
+      .trim()
+      .split(/\s+/)
+      .map(part => part[0])
+      .filter(Boolean)
+      .slice(0, 2)
+      .join('')
+      .toUpperCase();
+  };
+
+  const openLoginModal = () => {
+    setAuthMode('login');
+    setAuthEmail(currentUser?.email || 'koushik@example.com');
+    setAuthPassword(currentUser?.role === 'ADMIN' ? 'admin123' : 'password123');
+    setAuthError('');
+    setAuthSuccess('');
+    setShowAuthModal(true);
+  };
+
+  const openRegisterModal = () => {
+    setAuthMode('register');
+    setAuthEmail('');
+    setAuthPassword('');
+    setAuthName('');
+    setAuthRole('STUDENT');
+    setAuthBio('');
+    setAuthError('');
+    setAuthSuccess('');
+    setShowAuthModal(true);
+  };
+
+  const handleLoginSubmit = async (e) => {
+    e?.preventDefault();
+    setAuthError('');
+    setAuthSuccess('');
+    try {
+      const res = await authApi.login(authEmail, authPassword);
+      if (res.data?.success && res.data?.user) {
+        setCurrentUser(res.data.user);
+        setAuthSuccess(`Welcome back, ${res.data.user.fullName}!`);
+        setTimeout(() => {
+          setShowAuthModal(false);
+          setAuthSuccess('');
+        }, 600);
+      } else {
+        setAuthError(res.data?.error || 'Authentication failed. Please verify email and password.');
+      }
+    } catch {
+      setAuthError('Unable to authenticate. Please try again.');
+    }
+  };
+
+  const handleRegisterSubmit = async (e) => {
+    e?.preventDefault();
+    setAuthError('');
+    setAuthSuccess('');
+    if (!authName.trim() || !authEmail.trim() || !authPassword.trim()) {
+      setAuthError('Please fill in Name, Email, and Password.');
+      return;
+    }
+    try {
+      const res = await authApi.register({
+        fullName: authName.trim(),
+        email: authEmail.trim(),
+        password: authPassword.trim(),
+        role: authRole,
+        bio: authBio.trim() || 'SkillBridge university peer learner.',
+        availability: 'Weekdays 5 PM - 8 PM'
+      });
+      if (res.data?.success && res.data?.user) {
+        setAllUsers(prev => [...prev, res.data.user]);
+        setCurrentUser(res.data.user);
+        setAuthSuccess(`Account created! Welcome to SkillBridge, ${res.data.user.fullName}!`);
+        setTimeout(() => {
+          setShowAuthModal(false);
+          setAuthSuccess('');
+        }, 700);
+      } else {
+        setAuthError(res.data?.error || 'Registration failed.');
+      }
+    } catch {
+      setAuthError('Unable to complete registration. Please try again.');
+    }
+  };
+
+  const handleQuickLogin = (demoUser) => {
+    const pass = demoUser.role === 'ADMIN' ? 'admin123' : 'password123';
+    setAuthEmail(demoUser.email);
+    setAuthPassword(pass);
+    setCurrentUser(demoUser);
+    setAuthError('');
+    setAuthSuccess(`Signed in as ${demoUser.fullName} (${demoUser.role})`);
+    setTimeout(() => {
+      setShowAuthModal(false);
+      setAuthSuccess('');
+    }, 450);
+  };
   
   // Data states initialized with seed data
   const [skills, setSkills] = useState(initialSkills);
@@ -321,8 +434,8 @@ Database: skillbridge_db (TiDB Cloud Serverless)
         </nav>
 
         <div className="sidebar-footer">
-          <div className="user-card">
-            <div className="user-avatar">KC</div>
+          <div className="user-card" onClick={openLoginModal} style={{ cursor: 'pointer' }} title="Click to switch account or sign in">
+            <div className="user-avatar">{getInitials(currentUser.fullName)}</div>
             <div className="user-info">
               <h4>{currentUser.fullName}</h4>
               <p>{currentUser.role} • {currentUser.reliabilityScore}%</p>
@@ -330,10 +443,7 @@ Database: skillbridge_db (TiDB Cloud Serverless)
           </div>
           <button 
             className="btn-switch-user"
-            onClick={() => {
-              const other = allUsers.find(u => u.userId !== currentUser.userId) || currentUser;
-              setCurrentUser(other);
-            }}
+            onClick={openLoginModal}
           >
             Switch User / Login
           </button>
@@ -364,21 +474,18 @@ Database: skillbridge_db (TiDB Cloud Serverless)
               <span className="dot-active"></span>
               <span>Active</span>
             </div>
-            <div className="user-pill-header">
-              <span className="user-pill-tag">KC</span>
+            <div className="user-pill-header" onClick={openLoginModal} style={{ cursor: 'pointer' }} title="Click to view or switch account">
+              <span className="user-pill-tag">{getInitials(currentUser.fullName)}</span>
               <span className="user-pill-name">{currentUser.fullName}</span>
             </div>
             <button 
               className="btn-header-secondary" 
-              onClick={() => {
-                const other = allUsers.find(u => u.userId !== currentUser.userId) || currentUser;
-                setCurrentUser(other);
-              }}
+              onClick={openLoginModal}
             >
               Switch User
             </button>
-            <button className="btn-header-primary" onClick={() => setActiveTab('discover')}>
-              + Explore Skills
+            <button className="btn-header-primary" onClick={openRegisterModal}>
+              + Sign Up
             </button>
           </div>
         </header>
@@ -1346,23 +1453,31 @@ Database: skillbridge_db (TiDB Cloud Serverless)
               <div className="content-card">
                 <div className="card-header-row">
                   <h3>User Profile & Credentials</h3>
-                  <button 
-                    className="btn-outline-secondary" 
-                    onClick={() => {
-                      const newBio = prompt('Enter new bio:', currentUser.bio);
-                      if (newBio) setCurrentUser(prev => ({ ...prev, bio: newBio }));
-                    }}
-                  >
-                    Edit Profile
-                  </button>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button 
+                      className="btn-outline-secondary" 
+                      onClick={() => {
+                        const newBio = prompt('Enter new bio:', currentUser.bio);
+                        if (newBio) setCurrentUser(prev => ({ ...prev, bio: newBio }));
+                      }}
+                    >
+                      Edit Profile
+                    </button>
+                    <button 
+                      className="btn-purple" 
+                      onClick={openLoginModal}
+                    >
+                      Switch / Sign In
+                    </button>
+                  </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '20px' }}>
                   <div className="avatar-chip" style={{ width: '64px', height: '64px', fontSize: '22px', background: '#F3E8FF', color: '#6D28D9' }}>
-                    KC
+                    {getInitials(currentUser.fullName)}
                   </div>
                   <div>
                     <h3 style={{ fontSize: '18px' }}>{currentUser.fullName}</h3>
-                    <p style={{ color: '#64748B', fontSize: '13px' }}>B.Tech CSE Student • SkillBridge Active Peer</p>
+                    <p style={{ color: '#64748B', fontSize: '13px' }}>{currentUser.role === 'ADMIN' ? 'Platform Administrator' : 'B.Tech CSE Student • SkillBridge Active Peer'}</p>
                   </div>
                 </div>
                 <div style={{ fontSize: '13px', color: '#334155', lineHeight: '1.8' }}>
@@ -1456,6 +1571,270 @@ Database: skillbridge_db (TiDB Cloud Serverless)
           )}
         </div>
       </main>
+
+      {/* 3. Authentication & Account Modal */}
+      {showAuthModal && (
+        <div className="modal-overlay" onClick={() => setShowAuthModal(false)}>
+          <div className="modal-card" style={{ maxWidth: '440px' }} onClick={e => e.stopPropagation()}>
+            <div className="card-header-row" style={{ marginBottom: '14px' }}>
+              <div>
+                <h3 style={{ fontSize: '18px', fontWeight: '800' }}>
+                  {authMode === 'login' ? 'Sign In to SkillBridge' : 'Create Campus Account'}
+                </h3>
+                <p style={{ fontSize: '12px', color: '#64748B', marginTop: '2px' }}>
+                  {authMode === 'login' 
+                    ? 'Connect to peer learning exchanges & live sessions' 
+                    : 'Join your university peer skill network'}
+                </p>
+              </div>
+              <button 
+                type="button"
+                className="btn-link" 
+                onClick={() => setShowAuthModal(false)}
+                style={{ fontSize: '18px', background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Mode Switcher Tabs */}
+            <div className="auth-tabs">
+              <button 
+                type="button"
+                className={`auth-tab-btn ${authMode === 'login' ? 'active' : ''}`}
+                onClick={() => { setAuthMode('login'); setAuthError(''); setAuthSuccess(''); }}
+              >
+                Sign In
+              </button>
+              <button 
+                type="button"
+                className={`auth-tab-btn ${authMode === 'register' ? 'active' : ''}`}
+                onClick={() => { setAuthMode('register'); setAuthError(''); setAuthSuccess(''); }}
+              >
+                Create Account
+              </button>
+            </div>
+
+            {/* Feedback Alerts */}
+            {authError && (
+              <div className="auth-alert-error">
+                <span>⚠️ {authError}</span>
+              </div>
+            )}
+            {authSuccess && (
+              <div className="auth-alert-success">
+                <span>✓ {authSuccess}</span>
+              </div>
+            )}
+
+            {/* TAB 1: LOGIN */}
+            {authMode === 'login' ? (
+              <div>
+                {/* Quick Select Peer Profiles */}
+                <div className="quick-pick-section">
+                  <div style={{ fontSize: '11px', fontWeight: '700', color: '#475569', letterSpacing: '0.3px', textTransform: 'uppercase' }}>
+                    ⚡ Instant Switch / Demo Peers
+                  </div>
+                  <div className="quick-pick-grid">
+                    {allUsers.slice(0, 4).map(u => (
+                      <button 
+                        key={u.userId}
+                        type="button"
+                        className="quick-user-btn"
+                        onClick={() => handleQuickLogin(u)}
+                        title={`Sign in as ${u.fullName}`}
+                      >
+                        <div className="quick-user-avatar">
+                          {getInitials(u.fullName)}
+                        </div>
+                        <div style={{ overflow: 'hidden' }}>
+                          <div className="quick-user-name">{u.fullName.split(' ')[0]}</div>
+                          <div className="quick-user-role">{u.role}</div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div style={{ textAlign: 'center', margin: '12px 0 14px', position: 'relative' }}>
+                  <span style={{ background: '#FFFFFF', padding: '0 10px', fontSize: '11px', color: '#94A3B8', fontWeight: '600' }}>
+                    OR ENTER CREDENTIALS
+                  </span>
+                  <div style={{ position: 'absolute', top: '50%', left: 0, right: 0, height: '1px', background: '#E2E8F0', zIndex: -1 }}></div>
+                </div>
+
+                <form onSubmit={handleLoginSubmit}>
+                  <div style={{ marginBottom: '12px' }}>
+                    <label style={{ fontSize: '12px', fontWeight: '700', display: 'block', marginBottom: '4px', color: '#334155' }}>
+                      Email or Username
+                    </label>
+                    <input 
+                      type="text" 
+                      required 
+                      className="modal-input" 
+                      placeholder="e.g. koushik@example.com or koushik"
+                      value={authEmail}
+                      onChange={e => setAuthEmail(e.target.value)}
+                    />
+                  </div>
+
+                  <div style={{ marginBottom: '16px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                      <label style={{ fontSize: '12px', fontWeight: '700', color: '#334155' }}>
+                        Password
+                      </label>
+                      <span style={{ fontSize: '11px', color: '#64748B' }}>
+                        Default: <code>password123</code>
+                      </span>
+                    </div>
+                    <input 
+                      type="password" 
+                      required 
+                      className="modal-input" 
+                      placeholder="Enter password"
+                      value={authPassword}
+                      onChange={e => setAuthPassword(e.target.value)}
+                    />
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '18px' }}>
+                    <button 
+                      type="button" 
+                      className="btn-link"
+                      style={{ fontSize: '12px', color: '#6D28D9', cursor: 'pointer', background: 'none', border: 'none', padding: 0 }}
+                      onClick={() => { setAuthMode('register'); setAuthError(''); }}
+                    >
+                      Need an account? Register →
+                    </button>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button 
+                        type="button" 
+                        className="btn-outline-secondary" 
+                        onClick={() => setShowAuthModal(false)}
+                      >
+                        Cancel
+                      </button>
+                      <button type="submit" className="btn-purple">
+                        Sign In
+                      </button>
+                    </div>
+                  </div>
+                </form>
+              </div>
+            ) : (
+              /* TAB 2: REGISTER / SIGN UP */
+              <form onSubmit={handleRegisterSubmit}>
+                <div style={{ marginBottom: '10px' }}>
+                  <label style={{ fontSize: '12px', fontWeight: '700', display: 'block', marginBottom: '4px', color: '#334155' }}>
+                    Full Name *
+                  </label>
+                  <input 
+                    type="text" 
+                    required 
+                    className="modal-input" 
+                    placeholder="e.g. Priya Sharma"
+                    value={authName}
+                    onChange={e => setAuthName(e.target.value)}
+                  />
+                </div>
+
+                <div style={{ marginBottom: '10px' }}>
+                  <label style={{ fontSize: '12px', fontWeight: '700', display: 'block', marginBottom: '4px', color: '#334155' }}>
+                    Campus Email *
+                  </label>
+                  <input 
+                    type="email" 
+                    required 
+                    className="modal-input" 
+                    placeholder="e.g. priya@example.com"
+                    value={authEmail}
+                    onChange={e => setAuthEmail(e.target.value)}
+                  />
+                </div>
+
+                <div style={{ marginBottom: '10px' }}>
+                  <label style={{ fontSize: '12px', fontWeight: '700', display: 'block', marginBottom: '4px', color: '#334155' }}>
+                    Password *
+                  </label>
+                  <input 
+                    type="password" 
+                    required 
+                    className="modal-input" 
+                    placeholder="Create a password (min 6 chars)"
+                    value={authPassword}
+                    onChange={e => setAuthPassword(e.target.value)}
+                  />
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
+                  <div>
+                    <label style={{ fontSize: '12px', fontWeight: '700', display: 'block', marginBottom: '4px', color: '#334155' }}>
+                      Role
+                    </label>
+                    <select 
+                      className="modal-input"
+                      value={authRole}
+                      onChange={e => setAuthRole(e.target.value)}
+                    >
+                      <option value="STUDENT">Student Peer</option>
+                      <option value="MENTOR">Peer Mentor</option>
+                      <option value="ADMIN">Administrator</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '12px', fontWeight: '700', display: 'block', marginBottom: '4px', color: '#334155' }}>
+                      Initial Trust Rating
+                    </label>
+                    <input 
+                      type="text" 
+                      disabled 
+                      className="modal-input" 
+                      value="100% (New Peer)"
+                      style={{ background: '#F8FAFC', color: '#059669', fontWeight: '700' }}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: '14px' }}>
+                  <label style={{ fontSize: '12px', fontWeight: '700', display: 'block', marginBottom: '4px', color: '#334155' }}>
+                    Bio & Focus Area (Optional)
+                  </label>
+                  <input 
+                    type="text" 
+                    className="modal-input" 
+                    placeholder="e.g. 2nd Year CSE, learning Full-Stack & UI/UX"
+                    value={authBio}
+                    onChange={e => setAuthBio(e.target.value)}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px' }}>
+                  <button 
+                    type="button" 
+                    className="btn-link"
+                    style={{ fontSize: '12px', color: '#6D28D9', cursor: 'pointer', background: 'none', border: 'none', padding: 0 }}
+                    onClick={() => { setAuthMode('login'); setAuthError(''); }}
+                  >
+                    ← Back to Sign In
+                  </button>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button 
+                      type="button" 
+                      className="btn-outline-secondary" 
+                      onClick={() => setShowAuthModal(false)}
+                    >
+                      Cancel
+                    </button>
+                    <button type="submit" className="btn-purple">
+                      Create Account
+                    </button>
+                  </div>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

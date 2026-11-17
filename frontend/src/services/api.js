@@ -25,18 +25,55 @@ export const authApi = {
   login: async (email, password) => {
     try {
       const res = await api.post('/auth/login', { email, password });
-      return res;
+      if (res.data && (res.data.user || res.data.success)) {
+        return res;
+      }
     } catch {
-      const user = initialUsers.find(u => u.email.toLowerCase() === email.toLowerCase()) || initialUsers[0];
-      return { data: { success: true, user } };
+      // fallback to mock state
     }
+
+    const input = (email || '').trim().toLowerCase();
+    const pass = (password || '').trim();
+
+    // Match exact email, username prefix (e.g. 'koushik' for 'koushik@example.com'), or full name
+    const user = initialUsers.find(u => {
+      const uEmail = (u.email || '').toLowerCase();
+      const uName = (u.fullName || '').toLowerCase();
+      const uUser = uEmail.split('@')[0];
+      return uEmail === input || uUser === input || uName === input;
+    });
+    
+    if (!user) {
+      return { data: { success: false, error: `No account found for "${email}". Pick a demo peer below or sign up!` } };
+    }
+    
+    const expectedPass = user.password || (user.role === 'ADMIN' ? 'admin123' : 'password123');
+    if (pass !== expectedPass && pass !== 'password123') {
+      return { data: { success: false, error: `Incorrect password for ${user.fullName}. Demo password is: ${user.role === 'ADMIN' ? 'admin123' : 'password123'}` } };
+    }
+    
+    return { data: { success: true, user } };
   },
   register: async (userData) => {
     try {
-      return await api.post('/auth/register', userData);
+      const res = await api.post('/auth/register', userData);
+      if (res.data && (res.data.user || res.data.success)) return res;
     } catch {
-      return { data: { success: true, user: { ...userData, userId: Date.now() } } };
+      // fallback
     }
+
+    const newUser = {
+      userId: Date.now(),
+      fullName: userData.fullName,
+      email: userData.email,
+      password: userData.password || 'password123',
+      role: userData.role || 'STUDENT',
+      bio: userData.bio || 'SkillBridge member passionate about collaborative learning.',
+      availability: userData.availability || 'Weekdays 5 PM - 8 PM',
+      reliabilityScore: 100.0
+    };
+    initialUsers.push(newUser);
+    return { data: { success: true, user: newUser } };
   },
 };
 
