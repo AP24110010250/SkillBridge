@@ -1,0 +1,21 @@
+# Environment Configuration
+.env
+.env.local
+.env.*.local
+
+# Build Outputs
+target/
+*.class
+dependency-reduced-pom.xml
+dist/
+build/
+frontend/dist/
+frontend/node_modules/
+
+# IDE Files
+.idea/
+*.iml
+.vscode/
+.settings/
+.classpath
+.project
