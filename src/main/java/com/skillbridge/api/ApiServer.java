@@ -83,6 +83,9 @@ public class ApiServer {
         // 7. Users & Profile
         server.createContext("/api/users", new UsersHandler());
 
+        // 8. Messages & Live Chat
+        server.createContext("/api/messages", new MessagesHandler());
+
         server.start();
         System.out.println("=================================================");
         System.out.println("  SkillBridge REST API Server is LIVE on port " + port);
@@ -364,6 +367,38 @@ public class ApiServer {
                 } else {
                     List<User> users = userService.getAllUsers();
                     sendJson(exchange, 200, users);
+                }
+            } catch (Exception e) {
+                sendError(exchange, 500, e.getMessage());
+            }
+        }
+    }
+
+    private class MessagesHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            addCorsHeaders(exchange);
+            if ("OPTIONS".equalsIgnoreCase(exchange.getRequestMethod())) {
+                exchange.sendResponseHeaders(204, -1);
+                return;
+            }
+
+            try {
+                if ("GET".equalsIgnoreCase(exchange.getRequestMethod())) {
+                    Map<String, String> q = parseQueryParams(exchange.getRequestURI().getQuery());
+                    int user1 = Integer.parseInt(q.getOrDefault("user1", "1"));
+                    int user2 = Integer.parseInt(q.getOrDefault("user2", "2"));
+                    List<Message> conv = exchangeService.getConversation(user1, user2);
+                    sendJson(exchange, 200, conv);
+                } else if ("POST".equalsIgnoreCase(exchange.getRequestMethod())) {
+                    try (InputStream is = exchange.getRequestBody()) {
+                        Map<String, Object> body = mapper.readValue(is, Map.class);
+                        int senderId = ((Number) body.get("senderId")).intValue();
+                        int receiverId = ((Number) body.get("receiverId")).intValue();
+                        String text = (String) body.get("messageText");
+                        Message sent = exchangeService.sendMessage(senderId, receiverId, text);
+                        sendJson(exchange, 201, sent);
+                    }
                 }
             } catch (Exception e) {
                 sendError(exchange, 500, e.getMessage());
