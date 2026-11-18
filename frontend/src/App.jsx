@@ -205,6 +205,20 @@ export default function App() {
   const [newGoalSkill, setNewGoalSkill] = useState('Java');
   const [newGoalSessions, setNewGoalSessions] = useState(5);
 
+  // Review & Rating Modal states
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [selectedReviewSession, setSelectedReviewSession] = useState(null);
+  const [reviewStars, setReviewStars] = useState(5);
+  const [reviewComment, setReviewComment] = useState('Great exchange! Very thorough explanations and hands-on practice.');
+  const [reviewSuccessMsg, setReviewSuccessMsg] = useState('');
+
+  // Schedule Session Modal states
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [scheduleTopic, setScheduleTopic] = useState('Peer Skill Swap Session');
+  const [scheduleDay, setScheduleDay] = useState(19);
+  const [scheduleTime, setScheduleTime] = useState('6:00 PM');
+  const [scheduleVenue, setScheduleVenue] = useState('SkillBridge Peer Study Hub / Lab 3');
+
   const [dbStatusPing, setDbStatusPing] = useState('Connected (Latency: 42ms)');
 
   // Sync with cloud backend
@@ -280,17 +294,10 @@ export default function App() {
 
   const handleAcceptRequest = (requestId) => {
     setRequests(prev => prev.map(r => r.requestId === requestId ? { ...r, status: 'ACCEPTED' } : r));
-    setSessions(prev => [
-      {
-        sessionId: Date.now(),
-        partnerName: 'Rahul Sharma',
-        skillName: 'Peer Skill Swap Live Session',
-        time: 'Scheduled for Friday 6:00 PM',
-        status: 'SCHEDULED',
-        meetingLink: 'https://meet.google.com/sb-live-peer'
-      },
-      ...prev
-    ]);
+    // Auto add notification message in chat
+    const partnerId = 2; // Rahul Sharma
+    setActiveChatUserId(partnerId);
+    setActiveTab('messages');
   };
 
   const handleRejectRequest = (requestId) => {
@@ -675,17 +682,24 @@ Database: skillbridge_db (TiDB Cloud Serverless)
                   <div className="calendar-days-grid">
                     {Array.from({ length: 30 }, (_, i) => {
                       const day = i + 1;
-                      const hasEvent = day === 15 || day === 17;
+                      const hasScheduled = sessions.some(s => s.status === 'SCHEDULED' && (s.day === day || (!s.day && day === 19)));
+                      const hasCompleted = sessions.some(s => s.status === 'COMPLETED' && (s.day === day || (!s.day && day === 15)));
+                      const isToday = day === 18;
                       return (
-                        <div key={day} className={`calendar-day-cell ${day === 17 ? 'today' : ''}`}>
+                        <div key={day} className={`calendar-day-cell ${isToday ? 'today' : ''} ${hasCompleted ? 'completed-day' : ''} ${hasScheduled ? 'scheduled-day' : ''}`} title={hasCompleted ? `Day ${day}: Session Completed & Reviewed` : hasScheduled ? `Day ${day}: Scheduled Exchange Session` : `Day ${day}`}>
                           <span>{day}</span>
-                          {hasEvent && <div className="event-dot"></div>}
+                          {hasCompleted && <div className="event-dot" style={{ background: '#059669' }}></div>}
+                          {hasScheduled && !hasCompleted && <div className="event-dot" style={{ background: '#2563EB' }}></div>}
                         </div>
                       );
                     })}
                   </div>
-                  <div className="calendar-footer-details">
-                    <span>Selected: Nov 17, 2026 • 1 Completed Peer Session</span>
+                  <div className="calendar-footer-details" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span>Nov 2026: {sessions.filter(s => s.status === 'SCHEDULED').length} Scheduled • {sessions.filter(s => s.status === 'COMPLETED').length} Completed</span>
+                    <div style={{ display: 'flex', gap: '8px', fontSize: '11px' }}>
+                      <span style={{ color: '#2563EB', fontWeight: '700' }}>● Scheduled</span>
+                      <span style={{ color: '#059669', fontWeight: '700' }}>● Completed & Reviewed</span>
+                    </div>
                   </div>
                 </div>
 
@@ -1045,27 +1059,45 @@ Database: skillbridge_db (TiDB Cloud Serverless)
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         {s.status === 'SCHEDULED' && (
                           <>
+                            <span style={{ fontSize: '12px', color: '#6D28D9', fontWeight: '600' }}>
+                              📍 {s.venue || 'Campus Peer Study Room'}
+                            </span>
                             <button 
-                              className="btn-purple" 
-                              onClick={() => window.open(s.meetingLink || 'https://meet.google.com', '_blank')}
-                            >
-                              Join Video Call →
-                            </button>
-                            <button 
-                              className="btn-outline-secondary"
+                              className="btn-purple"
                               onClick={() => {
                                 setSessions(prev => prev.map(item => item.sessionId === s.sessionId ? { ...item, status: 'COMPLETED' } : item));
-                                setPoints(p => p + 50);
+                                setSelectedReviewSession(s);
+                                setReviewStars(5);
+                                setReviewComment('Great session! Very thorough explanations and hands-on practice.');
+                                setReviewSuccessMsg('');
+                                setShowReviewModal(true);
                               }}
                             >
-                              Mark Completed
+                              ✓ Mark Complete
                             </button>
                           </>
                         )}
                         {s.status === 'COMPLETED' && (
-                          <span style={{ color: '#059669', fontWeight: '700', fontSize: '12px' }}>
-                            ✓ 60 mins logged (+50 pts)
-                          </span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ color: '#059669', fontWeight: '700', fontSize: '12px' }}>
+                              {s.reviewed ? `✓ Reviewed (${s.rating || 5}⭐) • Logged in Calendar` : '✓ Completed • Pending Review'}
+                            </span>
+                            {!s.reviewed && (
+                              <button 
+                                className="btn-purple"
+                                style={{ padding: '6px 12px', fontSize: '12px' }}
+                                onClick={() => {
+                                  setSelectedReviewSession(s);
+                                  setReviewStars(5);
+                                  setReviewComment('Great session! Very thorough explanations and hands-on practice.');
+                                  setReviewSuccessMsg('');
+                                  setShowReviewModal(true);
+                                }}
+                              >
+                                ⭐ Leave Review
+                              </button>
+                            )}
+                          </div>
                         )}
                       </div>
                     </div>
@@ -1111,13 +1143,13 @@ Database: skillbridge_db (TiDB Cloud Serverless)
                     </div>
                   </div>
                   <button 
-                    className="btn-header-secondary" 
+                    className="btn-purple" 
                     onClick={() => {
-                      alert(`Meeting scheduled with ${activeChatPartner.fullName} for Thursday 6:00 PM!`);
-                      setActiveTab('sessions');
+                      setScheduleTopic(`Peer Exchange with ${activeChatPartner.fullName}`);
+                      setShowScheduleModal(true);
                     }}
                   >
-                    📅 Schedule Session
+                    📅 Schedule Agreed Meeting
                   </button>
                 </div>
 
@@ -1829,6 +1861,204 @@ Database: skillbridge_db (TiDB Cloud Serverless)
                       Create Account
                     </button>
                   </div>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
+      {/* 4. Schedule Meeting Modal (agreed upon in Chat) */}
+      {showScheduleModal && (
+        <div className="modal-overlay" onClick={() => setShowScheduleModal(false)}>
+          <div className="modal-card" style={{ maxWidth: '440px' }} onClick={e => e.stopPropagation()}>
+            <div className="card-header-row" style={{ marginBottom: '14px' }}>
+              <div>
+                <h3 style={{ fontSize: '18px', fontWeight: '800' }}>Schedule Peer Meeting</h3>
+                <p style={{ fontSize: '12px', color: '#64748B', marginTop: '2px' }}>
+                  Lock in an agreed date & venue for both calendars.
+                </p>
+              </div>
+              <button 
+                type="button" 
+                className="btn-link" 
+                onClick={() => setShowScheduleModal(false)}
+                style={{ fontSize: '18px', background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              const newSession = {
+                sessionId: Date.now(),
+                partnerName: activeChatPartner.fullName,
+                skillName: scheduleTopic,
+                time: `Nov ${scheduleDay}, 2026 at ${scheduleTime}`,
+                day: parseInt(scheduleDay),
+                venue: scheduleVenue,
+                status: 'SCHEDULED',
+                reviewed: false
+              };
+              setSessions(prev => [newSession, ...prev]);
+              setShowScheduleModal(false);
+              setActiveTab('overview');
+            }}>
+              <div style={{ marginBottom: '12px' }}>
+                <label style={{ fontSize: '12px', fontWeight: '700', display: 'block', marginBottom: '4px', color: '#334155' }}>
+                  Session Topic / Skill Focus
+                </label>
+                <input 
+                  type="text" 
+                  required 
+                  className="modal-input" 
+                  value={scheduleTopic}
+                  onChange={e => setScheduleTopic(e.target.value)}
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '12px' }}>
+                <div>
+                  <label style={{ fontSize: '12px', fontWeight: '700', display: 'block', marginBottom: '4px', color: '#334155' }}>
+                    Calendar Date (Nov)
+                  </label>
+                  <select 
+                    className="modal-input" 
+                    value={scheduleDay} 
+                    onChange={e => setScheduleDay(e.target.value)}
+                  >
+                    {Array.from({ length: 30 }, (_, i) => i + 1).map(d => (
+                      <option key={d} value={d}>Nov {d}, 2026</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label style={{ fontSize: '12px', fontWeight: '700', display: 'block', marginBottom: '4px', color: '#334155' }}>
+                    Time
+                  </label>
+                  <input 
+                    type="text" 
+                    required 
+                    className="modal-input" 
+                    value={scheduleTime}
+                    onChange={e => setScheduleTime(e.target.value)}
+                    placeholder="e.g. 5:30 PM"
+                  />
+                </div>
+              </div>
+
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ fontSize: '12px', fontWeight: '700', display: 'block', marginBottom: '4px', color: '#334155' }}>
+                  Campus Meeting Venue / Mode
+                </label>
+                <input 
+                  type="text" 
+                  required 
+                  className="modal-input" 
+                  value={scheduleVenue}
+                  onChange={e => setScheduleVenue(e.target.value)}
+                  placeholder="e.g. Central Library 2nd Floor, Lab 4"
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                <button type="button" className="btn-outline-secondary" onClick={() => setShowScheduleModal(false)}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn-purple">
+                  ✓ Add to Both Calendars
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 5. Leave Peer Review & Rating Modal */}
+      {showReviewModal && (
+        <div className="modal-overlay" onClick={() => setShowReviewModal(false)}>
+          <div className="modal-card" style={{ maxWidth: '440px' }} onClick={e => e.stopPropagation()}>
+            <div className="card-header-row" style={{ marginBottom: '14px' }}>
+              <div>
+                <h3 style={{ fontSize: '18px', fontWeight: '800' }}>Leave Peer Review</h3>
+                <p style={{ fontSize: '12px', color: '#64748B', marginTop: '2px' }}>
+                  Rate your exchange partner to finalize the session and update reliability.
+                </p>
+              </div>
+              <button 
+                type="button" 
+                className="btn-link" 
+                onClick={() => setShowReviewModal(false)}
+                style={{ fontSize: '18px', background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {reviewSuccessMsg ? (
+              <div className="auth-alert-success">
+                <span>✓ {reviewSuccessMsg}</span>
+              </div>
+            ) : (
+              <form onSubmit={(e) => {
+                e.preventDefault();
+                if (selectedReviewSession) {
+                  setSessions(prev => prev.map(item => item.sessionId === selectedReviewSession.sessionId ? { ...item, reviewed: true, rating: reviewStars } : item));
+                }
+                setPoints(p => p + 50);
+                setReviewSuccessMsg(`Review recorded! +50 Skill Points awarded and reliability updated.`);
+                setTimeout(() => {
+                  setShowReviewModal(false);
+                  setReviewSuccessMsg('');
+                }, 900);
+              }}>
+                <div style={{ marginBottom: '14px' }}>
+                  <label style={{ fontSize: '12px', fontWeight: '700', display: 'block', marginBottom: '6px', color: '#334155' }}>
+                    Select Star Rating
+                  </label>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    {[1, 2, 3, 4, 5].map(star => (
+                      <button 
+                        key={star}
+                        type="button"
+                        style={{
+                          fontSize: '20px',
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          color: star <= reviewStars ? '#F59E0B' : '#CBD5E1'
+                        }}
+                        onClick={() => setReviewStars(star)}
+                      >
+                        ★
+                      </button>
+                    ))}
+                    <span style={{ fontSize: '13px', fontWeight: '700', color: '#6D28D9', alignSelf: 'center', marginLeft: '6px' }}>
+                      {reviewStars} / 5 Stars
+                    </span>
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: '16px' }}>
+                  <label style={{ fontSize: '12px', fontWeight: '700', display: 'block', marginBottom: '4px', color: '#334155' }}>
+                    Peer Feedback & Comments
+                  </label>
+                  <textarea 
+                    rows="3"
+                    required 
+                    className="modal-input" 
+                    value={reviewComment}
+                    onChange={e => setReviewComment(e.target.value)}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                  <button type="button" className="btn-outline-secondary" onClick={() => setShowReviewModal(false)}>
+                    Cancel
+                  </button>
+                  <button type="submit" className="btn-purple">
+                    Submit Review & Finish
+                  </button>
                 </div>
               </form>
             )}

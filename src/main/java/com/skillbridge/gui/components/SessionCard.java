@@ -72,10 +72,10 @@ public class SessionCard extends JPanel {
         nameLbl.setFont(UITheme.FONT_HEADER);
         nameLbl.setForeground(UITheme.TEXT_MAIN);
 
-        String link = session.getMeetingLink() != null && !session.getMeetingLink().isEmpty()
+        String venue = session.getMeetingLink() != null && !session.getMeetingLink().isEmpty()
                 ? session.getMeetingLink()
-                : "Campus Library / Study Room";
-        JLabel locLbl = new JLabel("<html><b>Venue / Link:</b> <font color='#2563EB'>" + link + "</font></html>");
+                : "SkillBridge Campus Study Room / Lab 3";
+        JLabel locLbl = new JLabel("<html><b>Meeting Venue / Mode:</b> <font color='#6D28D9'>" + venue + "</font></html>");
         locLbl.setFont(UITheme.FONT_BODY);
 
         String notes = session.getNotes() != null && !session.getNotes().isEmpty() ? session.getNotes() : "Peer skill exchange session";

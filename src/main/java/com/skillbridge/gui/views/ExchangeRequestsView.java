@@ -180,9 +180,9 @@ public class ExchangeRequestsView extends JPanel {
                 public void onAccept(ExchangeRequest request) {
                     try {
                         Timestamp sessionTime = new Timestamp(System.currentTimeMillis() + 86400000L); // Tomorrow
-                        String link = "https://meet.skillbridge.edu/session-" + request.getRequestId();
-                        exchangeService.acceptRequest(request.getRequestId(), sessionTime, link);
-                        JOptionPane.showMessageDialog(mainFrame, "Exchange accepted! Live session has been auto-scheduled.", "Success", JOptionPane.INFORMATION_MESSAGE);
+                        String venue = "SkillBridge Peer Collaboration Hub";
+                        exchangeService.acceptRequest(request.getRequestId(), sessionTime, venue);
+                        JOptionPane.showMessageDialog(mainFrame, "Exchange accepted! Peer chat is now unlocked and session is placed on both calendars.", "Request Accepted", JOptionPane.INFORMATION_MESSAGE);
                         refreshData(currentUser);
                     } catch (Exception ex) {
                         JOptionPane.showMessageDialog(mainFrame, ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);

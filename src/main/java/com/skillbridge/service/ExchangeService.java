@@ -50,8 +50,8 @@ public class ExchangeService {
         return req;
     }
 
-    // 2. Accept an exchange request and auto-schedule initial session
-    public boolean acceptRequest(int requestId, Timestamp sessionTime, String meetingLink) throws DatabaseException {
+    // 2. Accept an exchange request (Enables chat; session scheduled via agreement)
+    public boolean acceptRequest(int requestId, Timestamp sessionTime, String meetingVenue) throws DatabaseException {
         ExchangeRequest req = requestDao.findById(requestId);
         if (req == null) {
             return false;
@@ -59,14 +59,13 @@ public class ExchangeService {
 
         boolean updated = requestDao.updateStatus(requestId, "ACCEPTED");
         if (updated) {
-            // Auto schedule initial session
             Timestamp scheduled = sessionTime != null ? sessionTime : new Timestamp(System.currentTimeMillis() + 86400000L); // Default +24h
-            String link = meetingLink != null ? meetingLink : "https://meet.skillbridge.internal/" + requestId;
+            String venue = (meetingVenue != null && !meetingVenue.trim().isEmpty()) ? meetingVenue.trim() : "SkillBridge Campus Study Room";
 
-            ExchangeSession session = new ExchangeSession(0, requestId, scheduled, 60, link, "SCHEDULED", "Initial exchange session");
+            ExchangeSession session = new ExchangeSession(0, requestId, scheduled, 60, venue, "SCHEDULED", "Peer skill exchange agreed via chat");
             sessionDao.insert(session);
 
-            notificationManager.sendNotification("Exchange request #" + requestId + " accepted! Session scheduled.");
+            notificationManager.sendNotification("Exchange request #" + requestId + " accepted! Peer chat unlocked & session scheduled.");
             return true;
         }
         return false;
