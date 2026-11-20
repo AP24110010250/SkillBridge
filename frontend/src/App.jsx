@@ -315,10 +315,10 @@ Platform Reliability Rating: ${currentUser.reliabilityScore}%
 Skill Points: ${points} pts (Level 2: Skill Apprentice)
 
 --- SKILLS OFFERED (TEACHING) ---
-${offeredSkills.map(s => `* ${s.skillName} [${s.level}]`).join('\n')}
+${offeredSkills.map(s => `* ${s.skillName}`).join('\n')}
 
 --- SKILLS WANTED (LEARNING) ---
-${wantedSkills.map(s => `* ${s.skillName} [Target: ${s.level}, Priority: ${s.priority}]`).join('\n')}
+${wantedSkills.map(s => `* ${s.skillName}`).join('\n')}
 
 --- LEARNING GOALS ---
 ${goals.map(g => `* ${g.title}: ${g.completedSessions}/${g.targetSessions} sessions (${g.progressPercentage}%) - ${g.status}`).join('\n')}
@@ -1201,13 +1201,13 @@ Database: skillbridge_db (TiDB Cloud Serverless)
                       if (name && name.trim()) {
                         const trimmed = name.trim();
                         const isDuplicate = offeredSkills.some(
-                          s => s.skillName.toLowerCase() === trimmed.toLowerCase()
+                          s => s.skillName.trim().toLowerCase() === trimmed.toLowerCase()
                         );
                         if (isDuplicate) {
                           alert(`"${trimmed}" has already been added to your offered skills!`);
                           return;
                         }
-                        setOfferedSkills(prev => [...prev, { id: Date.now(), skillName: trimmed, level: 'Advanced', category: 'Tech' }]);
+                        setOfferedSkills(prev => [...prev, { id: Date.now(), skillName: trimmed, category: 'Tech' }]);
                       }
                     }}
                   >
@@ -1220,7 +1220,6 @@ Database: skillbridge_db (TiDB Cloud Serverless)
                     <div key={s.id} className="partner-card-detailed">
                       <div>
                         <h4>{s.skillName}</h4>
-                        <p className="partner-sub">{s.level} Proficiency</p>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <span className="compatibility-tag">Teaching</span>
@@ -1251,13 +1250,13 @@ Database: skillbridge_db (TiDB Cloud Serverless)
                       if (name && name.trim()) {
                         const trimmed = name.trim();
                         const isDuplicate = wantedSkills.some(
-                          s => s.skillName.toLowerCase() === trimmed.toLowerCase()
+                          s => s.skillName.trim().toLowerCase() === trimmed.toLowerCase()
                         );
                         if (isDuplicate) {
                           alert(`"${trimmed}" has already been added to your wanted skills!`);
                           return;
                         }
-                        setWantedSkills(prev => [...prev, { id: Date.now(), skillName: trimmed, level: 'Intermediate', priority: 'High', category: 'Creative' }]);
+                        setWantedSkills(prev => [...prev, { id: Date.now(), skillName: trimmed, category: 'Creative' }]);
                       }
                     }}
                   >
@@ -1270,7 +1269,6 @@ Database: skillbridge_db (TiDB Cloud Serverless)
                     <div key={s.id} className="partner-card-detailed">
                       <div>
                         <h4>{s.skillName}</h4>
-                        <p className="partner-sub">Target Level: {s.level} • {s.priority} Priority</p>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <span className="pill-badge">Learning</span>

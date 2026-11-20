@@ -90,13 +90,13 @@ export const initialSessions = [
 ];
 
 export const initialOfferedSkills = [
-  { id: 1, skillName: 'Java Programming', level: 'Advanced', category: 'Programming & Tech' },
-  { id: 2, skillName: 'C++ & Data Structures', level: 'Intermediate', category: 'Programming & Tech' }
+  { id: 1, skillName: 'Java Programming', category: 'Programming & Tech' },
+  { id: 2, skillName: 'C++ & Data Structures', category: 'Programming & Tech' }
 ];
 
 export const initialWantedSkills = [
-  { id: 1, skillName: 'Photoshop & Digital Art', level: 'Intermediate', priority: 'High', category: 'Design & Creative' },
-  { id: 2, skillName: 'Figma UI/UX Prototyping', level: 'Beginner', priority: 'Medium', category: 'Design & Creative' }
+  { id: 1, skillName: 'Photoshop & Digital Art', category: 'Design & Creative' },
+  { id: 2, skillName: 'Figma UI/UX Prototyping', category: 'Design & Creative' }
 ];
 
 export const initialGoals = [
