@@ -52,6 +52,43 @@ import {
   initialConversations
 } from './services/mockData';
 
+// Helper for intelligent duplicate/keyword matching
+const genericSkillWords = new Set([
+  'programming', 'language', 'basics', 'advanced', 'intermediate', 'beginner',
+  'development', 'mastery', 'course', 'fundamentals', 'training', 'tutorial',
+  'for', 'and', 'the', 'in', 'with'
+]);
+
+function areSkillsDuplicate(a, b) {
+  const normalize = str => (str || '').toLowerCase().replace(/[^a-z0-9+#]/g, ' ').replace(/\s+/g, ' ').trim();
+  const s1 = normalize(a);
+  const s2 = normalize(b);
+  if (!s1 || !s2) return false;
+  if (s1 === s2) return true;
+
+  const tokens1 = s1.split(' ').filter(w => w.length > 0);
+  const tokens2 = s2.split(' ').filter(w => w.length > 0);
+
+  const sig1 = tokens1.filter(w => !genericSkillWords.has(w));
+  const sig2 = tokens2.filter(w => !genericSkillWords.has(w));
+
+  const set1 = new Set(tokens1);
+  const set2 = new Set(tokens2);
+
+  // If all meaningful words of one are contained in the other (e.g. 'java' in 'java programming')
+  const all1In2 = tokens1.length > 0 && tokens1.every(t => set2.has(t) || genericSkillWords.has(t));
+  const all2In1 = tokens2.length > 0 && tokens2.every(t => set1.has(t) || genericSkillWords.has(t));
+  if (all1In2 || all2In1) return true;
+
+  // Keyword overlap on core significant identifiers
+  const sigSet1 = new Set(sig1.length ? sig1 : tokens1);
+  const sigSet2 = new Set(sig2.length ? sig2 : tokens2);
+  const hasSigOverlap = [...sigSet1].some(w => sigSet2.has(w));
+  if (hasSigOverlap && (sigSet1.size <= 1 || sigSet2.size <= 1)) return true;
+
+  return false;
+}
+
 export default function App() {
   const [activeTab, setActiveTab] = useState('overview');
   const [currentUser, setCurrentUser] = useState(initialUsers[0]);
@@ -1200,11 +1237,11 @@ Database: skillbridge_db (TiDB Cloud Serverless)
                       const name = prompt('Skill name to teach:');
                       if (name && name.trim()) {
                         const trimmed = name.trim();
-                        const isDuplicate = offeredSkills.some(
-                          s => s.skillName.trim().toLowerCase() === trimmed.toLowerCase()
+                        const existingMatch = offeredSkills.find(
+                          s => areSkillsDuplicate(s.skillName, trimmed)
                         );
-                        if (isDuplicate) {
-                          alert(`"${trimmed}" has already been added to your offered skills!`);
+                        if (existingMatch) {
+                          alert(`"${trimmed}" conflicts with already listed skill "${existingMatch.skillName}"!`);
                           return;
                         }
                         setOfferedSkills(prev => [...prev, { id: Date.now(), skillName: trimmed, category: 'Tech' }]);
@@ -1249,11 +1286,11 @@ Database: skillbridge_db (TiDB Cloud Serverless)
                       const name = prompt('Skill you want to learn:');
                       if (name && name.trim()) {
                         const trimmed = name.trim();
-                        const isDuplicate = wantedSkills.some(
-                          s => s.skillName.trim().toLowerCase() === trimmed.toLowerCase()
+                        const existingMatch = wantedSkills.find(
+                          s => areSkillsDuplicate(s.skillName, trimmed)
                         );
-                        if (isDuplicate) {
-                          alert(`"${trimmed}" has already been added to your wanted skills!`);
+                        if (existingMatch) {
+                          alert(`"${trimmed}" conflicts with already listed skill "${existingMatch.skillName}"!`);
                           return;
                         }
                         setWantedSkills(prev => [...prev, { id: Date.now(), skillName: trimmed, category: 'Creative' }]);
