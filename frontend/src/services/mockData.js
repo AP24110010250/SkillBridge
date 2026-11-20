@@ -90,8 +90,8 @@ export const initialSessions = [
 ];
 
 export const initialOfferedSkills = [
-  { id: 1, skillName: 'Java Programming', level: 'Advanced', experience: 2, category: 'Programming & Tech' },
-  { id: 2, skillName: 'C++ & Data Structures', level: 'Intermediate', experience: 1, category: 'Programming & Tech' }
+  { id: 1, skillName: 'Java Programming', level: 'Advanced', category: 'Programming & Tech' },
+  { id: 2, skillName: 'C++ & Data Structures', level: 'Intermediate', category: 'Programming & Tech' }
 ];
 
 export const initialWantedSkills = [

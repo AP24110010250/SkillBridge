@@ -19,3 +19,6 @@ frontend/node_modules/
 .settings/
 .classpath
 .project
+
+# Local team sharing plan (not tracked on git)
+sharing plan/

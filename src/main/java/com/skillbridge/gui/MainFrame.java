@@ -747,7 +747,7 @@ public class MainFrame extends JFrame {
         dialog.setLayout(new BorderLayout(14, 14));
         dialog.getContentPane().setBackground(UITheme.CARD_BG);
 
-        JPanel form = new JPanel(new GridLayout(4, 2, 10, 10));
+        JPanel form = new JPanel(new GridLayout(2, 2, 10, 10));
         form.setOpaque(false);
         form.setBorder(BorderFactory.createEmptyBorder(20, 24, 10, 24));
 
@@ -765,14 +765,11 @@ public class MainFrame extends JFrame {
         } catch (Exception ignored) {}
 
         JComboBox<String> profCombo = new JComboBox<>(new String[]{"INTERMEDIATE", "BEGINNER", "ADVANCED"});
-        JTextField expField = new JTextField("2");
 
         form.add(new JLabel("Skill to Teach:"));
         form.add(skillCombo);
         form.add(new JLabel("Proficiency Level:"));
         form.add(profCombo);
-        form.add(new JLabel("Years Experience:"));
-        form.add(expField);
 
         JPanel btnRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 14));
         btnRow.setOpaque(false);
@@ -785,8 +782,7 @@ public class MainFrame extends JFrame {
             Skill s = (Skill) skillCombo.getSelectedItem();
             if (s == null) return;
             try {
-                int exp = Integer.parseInt(expField.getText().trim());
-                skillService.addSkillOffered(currentUser.getUserId(), s.getSkillId(), (String) profCombo.getSelectedItem(), exp);
+                skillService.addSkillOffered(currentUser.getUserId(), s.getSkillId(), (String) profCombo.getSelectedItem(), 1);
                 dialog.dispose();
                 JOptionPane.showMessageDialog(this, s.getSkillName() + " added to your offered skills!", "Success", JOptionPane.INFORMATION_MESSAGE);
                 navigateTo("MY_SKILLS");

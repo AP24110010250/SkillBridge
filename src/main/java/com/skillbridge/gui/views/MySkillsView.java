@@ -232,10 +232,6 @@ public class MySkillsView extends JPanel {
         top.add(titleLbl, BorderLayout.WEST);
         top.add(profPill, BorderLayout.EAST);
 
-        JLabel expLbl = new JLabel("Experience: " + off.getYearsExperience() + " Years");
-        expLbl.setFont(UITheme.FONT_SMALL);
-        expLbl.setForeground(UITheme.TEXT_MUTED);
-
         JButton removeBtn = UITheme.createSecondaryButton("Remove");
         removeBtn.setFont(UITheme.FONT_SMALL);
         removeBtn.setBorder(BorderFactory.createCompoundBorder(
@@ -256,7 +252,6 @@ public class MySkillsView extends JPanel {
 
         JPanel bottom = new JPanel(new BorderLayout());
         bottom.setOpaque(false);
-        bottom.add(expLbl, BorderLayout.WEST);
         bottom.add(removeBtn, BorderLayout.EAST);
 
         card.add(top, BorderLayout.NORTH);
